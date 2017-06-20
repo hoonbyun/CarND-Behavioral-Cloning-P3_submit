@@ -42,6 +42,10 @@ def generator(samples, batch_size=32):
                 if bIsFlipImg:
                     img = np.fliplr(img)
                     steer = -1*steer
+                #print (steer)
+                #print (img.shape)
+                #cv2.imshow('img_path', img)
+                #cv2.waitKey(5000)
                 images.append(img)
                 angles.append(steer)
 
@@ -60,9 +64,9 @@ def getSamples(sCsvFilePath, sampleList, bAugFlipImg = False):
         curRelPath = os.path.dirname(sCsvFilePath)
 
     for row in rows[1:]:
-        path_cent_image = curRelPath+os.sep+'IMG'+os.sep+row[0].split('/')[-1]
-        path_left_image = curRelPath+os.sep+'IMG'+os.sep+row[1].split('/')[-1]
-        path_right_image = curRelPath+os.sep+'IMG'+os.sep+row[2].split('/')[-1]
+        path_cent_image = row[0]#curRelPath+os.sep+'IMG'+os.sep+row[0].split('/')[-1]
+        path_left_image = row[1]#curRelPath+os.sep+'IMG'+os.sep+row[1].split('/')[-1]
+        path_right_image = row[2]#curRelPath+os.sep+'IMG'+os.sep+row[2].split('/')[-1]
         
         steer_cent = float(row[3])
         sampleList.append([path_cent_image, steer_cent, False])
@@ -77,36 +81,45 @@ def getSamples(sCsvFilePath, sampleList, bAugFlipImg = False):
 def main(_):
 
     samples = []
-    getSamples(FLAGS.sim_test_csv_file, samples, True)
-    samples = shuffle(samples)
-    samples_shink = samples[:300]
+    getSamples(FLAGS.sim_test_csv_file, samples, False)
+    #samples = shuffle(samples)
+    #samples_shink = samples[:1000]
     print (len(samples))
             
-    train_samples, validation_samples = train_test_split(samples_shink, test_size=0.2)
+    train_samples, validation_samples = train_test_split(samples, test_size=0.2)
     print (len(train_samples))
-    print (len(validation_samples)) 
+    print (len(validation_samples))
     # compile and train the model using the generator function
-    train_generator = generator(train_samples, batch_size=16)
-    validation_generator = generator(validation_samples, batch_size=16)
+    train_generator = generator(train_samples, batch_size=32)
+    validation_generator = generator(validation_samples, batch_size=32)
     
     preProcess_img_shape = (160,320,3)
-    postProcess_img_shape = (90, 320, 3)
+    postProcess_img_shape = (65, 320, 3)
     model = Sequential()
     #Cropping 50 rows pixels from the top, 20 rows pixels from the bottom
-    model.add(Cropping2D(cropping=((50,20), (0,0)), input_shape=preProcess_img_shape))
+    model.add(Cropping2D(cropping=((70,25), (0,0)), input_shape=preProcess_img_shape))
     
     # Preprocess incoming data, centered around zero with small standard deviation 
-    model.add(Lambda(lambda x: x/255.0 - 0.5,
-            input_shape= postProcess_img_shape,
-            output_shape= postProcess_img_shape))
+    model.add(Lambda(lambda x: x/255.0 - 0.5, input_shape= postProcess_img_shape))
     
-    model.add(Convolution2D(6, 5, 5, input_shape = postProcess_img_shape))
-    model.add(MaxPooling2D((2, 2)))
+    # model.add(Convolution2D(16, 5, 5, input_shape = postProcess_img_shape))
+    # model.add(MaxPooling2D((2, 2)))
+    # model.add(Dropout(0.5))
+    # model.add(Activation('relu'))
+    # model.add(Flatten())
+    # model.add(Dense(128))
+    # model.add(Dense(84))
+    # model.add(Dense(1))
+    
+    model.add(Convolution2D(24,5,5, subsample=(2,2), activation="relu"))
     model.add(Dropout(0.5))
-    model.add(Activation('relu'))
+    model.add(Convolution2D(36,5,5, subsample=(2,2), activation="relu"))
+    model.add(Convolution2D(48,5,5, subsample=(2,2), activation="relu"))
+    model.add(Convolution2D(64,3,3, activation="relu"))
+    model.add(Convolution2D(64,3,3, activation="relu"))
     model.add(Flatten())
-    #model.add(Dense(128))
-    model.add(Dense(84))
+    model.add(Dense(100))
+    model.add(Dense(50))
     model.add(Dense(1))
     
     model.compile(loss='mse', optimizer='adam')
