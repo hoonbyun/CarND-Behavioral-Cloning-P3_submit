@@ -127,13 +127,12 @@ Then I added flipped images so that the model learns or used to the right turn s
 
 ![alt text][image7]
 
-For the augmentation, the images from the left and right cameras were uesd, but the simulator only gives the steer angle for the center of the vehicle so I need to compensate or correct the angles for the left and right cameras's images, for example the angler gets smaller for the left camera when the vehicle turns to the left while the anger in point of the right camera looks larger, the corresponding code is below.  
-`
+For the augmentation, the images from the left and right cameras were uesd, but the simulator only gives the steer angle for the center of the vehicle so I need to compensate or correct the angles for the left and right cameras's images, for example the angler gets smaller for the left camera when the vehicle turns to the left while the anger in point of the right camera looks larger, the corresponding code is below.
+  
+```
 left steer = steer_cent*(1.0 + np.sign(steer_cent)*STEER_SCALE_FACTOR_SIDE_IMAGE)  
-`
-`
 right steer = steer_cent*(1.0 - np.sign(steer_cent)*STEER_SCALE_FACTOR_SIDE_IMAGE)
-`
+```
 
 
 After the collection process, I had 38428 number of data points. I then preprocessed this data by normalization and cropping the image have the input image with the road view only.
